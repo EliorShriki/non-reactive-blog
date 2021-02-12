@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ import il.ac.afeka.cloud.layout.PostBoundary;
 public class PostServiceMongoDB implements PostService {
 	private final String DEFAULT_SECONDARY_SORT = "_id";
 	private PostDao postDao;
-	
+
 	@Autowired
 	public PostServiceMongoDB(PostDao postDao) {
 		this.postDao = postDao;
@@ -38,134 +39,96 @@ public class PostServiceMongoDB implements PostService {
 
 	@Override
 	public List<PostBoundary> getPostsAllByUser(String email, FilterTypeEnum filterType, String filterValue,
-			SortByEnumaration sortBy, String sortOrder) {
-		
+			SortByEnumaration sortBy, String sortOrder, int page, int size) {
+
 		Sort.Direction dir = sortOrder.equals("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC;
-		
-		if (filterType != null)		
+
+		if (filterType != null)
 			switch (filterType) {
 			case byProduct:
-				return this.getAllPostByUserAndProduct(
-						new UserEntity(email),
-						new ProductEntity(filterValue),
-						dir,
-						sortBy.name());
+				return this.getAllPostByUserAndProduct(new UserEntity(email), new ProductEntity(filterValue), dir,
+						sortBy.name(), page, size);
 			case byLanguage:
-				return this.getAllPostsByUserAndLanguage(
-						new UserEntity(email),
-						filterValue,
-						dir,
-						sortBy.name());
+				return this.getAllPostsByUserAndLanguage(new UserEntity(email), filterValue, dir, sortBy.name(), page,
+						size);
 			case byCreation:
 				TimeEnum time = TimeEnum.valueOf(filterValue);
-				return this.getAllPostsByUserAndCreation(
-						new UserEntity(email),
-						time,
-						dir,
-						sortBy.name());
+				return this.getAllPostsByUserAndCreation(new UserEntity(email), time, dir, sortBy.name(), page, size);
 			default:
 				break;
 			}
 
-		return this.postDao.findAllByUser(
-				new UserEntity(email),
-				Sort.by(
-						dir,
-						sortBy.name(),
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
+		return this.postDao
+				.findAllByUser(new UserEntity(email),
+						PageRequest.of(page, size, Sort.by(dir, sortBy.name(), DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PostBoundary> getAllPostsByProduct(String productId, FilterTypeEnum filterType, String filterValue,
-			SortByEnumaration sortBy, String sortOrder) {
+			SortByEnumaration sortBy, String sortOrder, int page, int size) {
 		Sort.Direction dir = sortOrder.equals("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC;
-		
+
 		if (filterType != null)
 			switch (filterType) {
 			case byLanguage:
-				return this.getAllPostsByProductAndLanguage(
-						new ProductEntity(productId),
-						filterValue,
-						dir,
+				return this.getAllPostsByProductAndLanguage(new ProductEntity(productId), filterValue, dir,
 						sortBy.name());
 			case byCreation:
 				TimeEnum time = TimeEnum.valueOf(filterValue);
-				return this.getAllPostsByProductAndCreation(
-						new ProductEntity(productId),
-						time,
-						dir,
-						sortBy.name());
+				return this.getAllPostsByProductAndCreation(new ProductEntity(productId), time, dir, sortBy.name(),
+						page, size);
 
 			default:
 				break;
 			}
 
-		return this.postDao.findAllByProduct(
-				new ProductEntity(productId),
-				Sort.by(
-						dir,
-						sortBy.name(),
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
+		return this.postDao
+				.findAllByProduct(new ProductEntity(productId),
+						PageRequest.of(page, size, Sort.by(dir, sortBy.name(), DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PostBoundary> getAllPosts(FilterTypeEnum filterType, String filterValue, SortByEnumaration sortBy,
-			String sortOrder) {
+			String sortOrder, int page, int size) {
 		Sort.Direction dir = sortOrder.equals("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC;
-		
+
 		if (filterType != null)
 			switch (filterType) {
 			case byCreation:
 				TimeEnum time = TimeEnum.valueOf(filterValue);
-				return this.getAllPostsByCreation(
-						dir,
-						sortBy.name(),
-						time);
+				return this.getAllPostsByCreation(dir, sortBy.name(), time, page, size);
 			case byCount:
 				return this.getAllPostsByCount(Long.parseLong(filterValue));
-	
+
 			default:
 				break;
 			}
-		
+
 		return this.postDao
-				.findAll(Sort.by(
-						sortOrder.equals("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC,
-						sortBy.name(),
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
+				.findAll(
+						PageRequest.of(page, size,
+								Sort.by(sortOrder.equals("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC,
+										sortBy.name(), DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
 	}
 
 	private List<PostBoundary> getAllPostsByCount(long count) {
 		return this.postDao
-				.findAll(Sort.by(
-						Sort.Direction.DESC,
-						SortByEnumaration.postingTimestamp.name(),
-						DEFAULT_SECONDARY_SORT))
-//				.limitRequest(count)
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
+				.findAll(
+						PageRequest.of(0, (int) count,
+								Sort.by(Sort.Direction.DESC, SortByEnumaration.postingTimestamp.name(),
+										DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
 	}
 
-	private List<PostBoundary> getAllPostsByCreation(Direction dir, String sortBy, TimeEnum timeFilter) {
+	private List<PostBoundary> getAllPostsByCreation(Direction dir, String sortBy, TimeEnum timeFilter, int page,
+			int size) {
 		List<PostBoundary> posts = this.postDao
-				.findAll(Sort.by(
-						dir,
-						sortBy,
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
-		
+				.findAll(PageRequest.of(page, size, Sort.by(dir, sortBy, DEFAULT_SECONDARY_SORT))).stream()
+				.map(PostBoundary::new).collect(Collectors.toList());
+
 		return this.filterByCreation(posts, timeFilter);
 	}
 
@@ -176,74 +139,52 @@ public class PostServiceMongoDB implements PostService {
 	}
 
 	private List<PostBoundary> getAllPostsByUserAndCreation(UserEntity userEntity, TimeEnum timeFilter, Direction dir,
-			String sortBy) {	
-		List<PostBoundary> posts = this.postDao.findAllByUser(
-				userEntity,
-				Sort.by(
-						dir,
-						sortBy,
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
-		
+			String sortBy, int page, int size) {
+		List<PostBoundary> posts = this.postDao
+				.findAllByUser(userEntity, PageRequest.of(page, size, Sort.by(dir, sortBy, DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
+
 		return this.filterByCreation(posts, timeFilter);
 	}
 
 	private List<PostBoundary> getAllPostsByUserAndLanguage(UserEntity userEntity, String lang, Direction dir,
+			String sortBy, int page, int size) {
+		return this.postDao
+				.findAllByUserAndLanguage(userEntity, lang,
+						PageRequest.of(page, size, Sort.by(dir, sortBy, DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
+	}
+
+	private List<PostBoundary> getAllPostByUserAndProduct(UserEntity userEntity, ProductEntity productEntity,
+			Sort.Direction dir, String sortBy, int page, int size) {
+		return this.postDao
+				.findAllByUserAndProduct(userEntity, productEntity,
+						PageRequest.of(page, size, Sort.by(dir, sortBy, DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
+	}
+
+	private List<PostBoundary> getAllPostsByProductAndLanguage(ProductEntity productEntity, String lang, Direction dir,
 			String sortBy) {
-		return this.postDao.findAllByUserAndLanguage(userEntity, lang, Sort.by(
-				dir,
-				sortBy,
-				DEFAULT_SECONDARY_SORT))
-		.stream()
-		.map(PostBoundary::new)
-		.collect(Collectors.toList());
-	}
-
-	private List<PostBoundary> getAllPostByUserAndProduct(UserEntity userEntity, ProductEntity productEntity, Sort.Direction dir, String sortBy) {
-		return this.postDao.findAllByUserAndProduct(userEntity, productEntity, Sort.by(
-				dir,
-				sortBy,
-				DEFAULT_SECONDARY_SORT))
-		.stream()
-		.map(PostBoundary::new)
-		.collect(Collectors.toList());
-	}
-
-	private List<PostBoundary> getAllPostsByProductAndLanguage(ProductEntity productEntity, String lang,
-			Direction dir, String sortBy) {
-		return this.postDao.findAllByProductAndLanguage(
-				productEntity,
-				lang,
-				Sort.by(
-						dir,
-						sortBy,
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
+		return this.postDao
+				.findAllByProductAndLanguage(productEntity, lang, Sort.by(dir, sortBy, DEFAULT_SECONDARY_SORT)).stream()
+				.map(PostBoundary::new).collect(Collectors.toList());
 	}
 
 	private List<PostBoundary> getAllPostsByProductAndCreation(ProductEntity productEntity, TimeEnum timeFilter,
-			Direction dir, String sortBy) {
-		List<PostBoundary> posts = this.postDao.findAllByProduct(
-				productEntity,
-				Sort.by(
-						dir,
-						sortBy,
-						DEFAULT_SECONDARY_SORT))
-				.stream()
-				.map(PostBoundary::new)
-				.collect(Collectors.toList());
-		
+			Direction dir, String sortBy, int page, int size) {
+		List<PostBoundary> posts = this.postDao
+				.findAllByProduct(productEntity,
+						PageRequest.of(page, size, Sort.by(dir, sortBy, DEFAULT_SECONDARY_SORT)))
+				.stream().map(PostBoundary::new).collect(Collectors.toList());
+
 		return this.filterByCreation(posts, timeFilter);
 	}
 
 	private List<PostBoundary> filterByCreation(List<PostBoundary> posts, TimeEnum timeFilter) {
 		long timeToSubstract = timeFilter.millisecs();
-		return posts.stream().filter(p -> p.getPostingTimestamp()
-				.compareTo(new Date(System.currentTimeMillis() - timeToSubstract)) > 0).collect(Collectors.toList());
+		return posts.stream().filter(
+				p -> p.getPostingTimestamp().compareTo(new Date(System.currentTimeMillis() - timeToSubstract)) > 0)
+				.collect(Collectors.toList());
 	}
 
 }
