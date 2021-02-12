@@ -29,7 +29,8 @@ public class BlogController {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public PostBoundary create(@RequestBody PostBoundary value) {
+    public PostBoundary create(
+    		@RequestBody PostBoundary value){
         return this.service.create(value);
     }
 
@@ -41,8 +42,17 @@ public class BlogController {
             @RequestParam(name = "filterType", required = false, defaultValue = "") FilterTypeEnum filterType,
             @RequestParam(name = "filterValue", required = false, defaultValue = "") String filterValue,
             @RequestParam(name = "sortBy", required = false, defaultValue = "postingTimestamp") SortByEnumaration sortBy,
-            @RequestParam(name = "sortOrder", required = false, defaultValue = "ASC") String sortOrder) {
-        return this.service.getPostsAllByUser(email, filterType, filterValue, sortBy, sortOrder);
+            @RequestParam(name = "sortOrder", required = false, defaultValue = "ASC") String sortOrder,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
+        return this.service.getPostsAllByUser(
+        		email, 
+        		filterType, 
+        		filterValue, 
+        		sortBy, 
+        		sortOrder,
+        		page,
+        		size);
     }
 
     @RequestMapping(path = "/blog/byProduct/{productId}",
@@ -53,14 +63,18 @@ public class BlogController {
             @RequestParam(name = "filterType", required = false, defaultValue = "") FilterTypeEnum filterType,
             @RequestParam(name = "filterValue", required = false, defaultValue = "") String filterValue,
             @RequestParam(name = "sortBy", required = false, defaultValue = "postingTimestamp") SortByEnumaration sortBy,
-            @RequestParam(name = "sortOrder", required = false, defaultValue = "ASC") String sortOrder
+            @RequestParam(name = "sortOrder", required = false, defaultValue = "ASC") String sortOrder,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10") int size
     ) {
         return this.service.getAllPostsByProduct(
                 productId,
                 filterType,
                 filterValue,
                 sortBy,
-                sortOrder
+                sortOrder,
+        		page, 
+        		size
         );
     }
 
@@ -71,9 +85,17 @@ public class BlogController {
             @RequestParam(name = "filterType", required = false, defaultValue = "") FilterTypeEnum filterType,
             @RequestParam(name = "filterValue", required = false, defaultValue = "") String filterValue,
             @RequestParam(name = "sortBy", required = false, defaultValue = "postingTimestamp") SortByEnumaration sortBy,
-            @RequestParam(name = "sortOrder", required = false, defaultValue = "ASC") String sortOrder
+            @RequestParam(name = "sortOrder", required = false, defaultValue = "ASC") String sortOrder,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10") int size
     ) {
-        return this.service.getAllPosts(filterType, filterValue, sortBy, sortOrder);
+        return this.service.getAllPosts(
+        		filterType, 
+        		filterValue, 
+        		sortBy, 
+        		sortOrder, 
+        		page, 
+        		size);
     }
 
     @RequestMapping(path = "/blog",
